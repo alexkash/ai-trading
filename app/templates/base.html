@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}AI Trading{% endblock %}</title>
+  <link rel="stylesheet" href="/static/app.css" />
+  <script src="/static/htmx.min.js"></script>
+  <script src="/static/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <a href="/bots" class="brand">AI Trading</a>
+    <nav>
+      <a href="/bots">Bots</a>
+      <a href="/bots/new">+ New bot</a>
+    </nav>
+  </header>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

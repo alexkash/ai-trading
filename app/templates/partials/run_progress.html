@@ -1,0 +1,20 @@
+<div class="progress-block">
+  <div class="row between">
+    <span>Status:
+      <strong>{{ run.status.value if run.status.value is defined else run.status }}</strong>
+    </span>
+    <span>{{ "%.0f"|format(run.progress * 100) }}%</span>
+  </div>
+  <div class="progress-bar"><div class="bar" style="width: {{ run.progress * 100 }}%"></div></div>
+  {% if run.error %}<p class="error">⚠ {{ run.error }}</p>{% endif %}
+  {% if run.metrics %}
+  <ul class="metrics">
+    <li><span class="label">Net PnL</span> ${{ "%.2f"|format(run.metrics.net_pnl) }}</li>
+    <li><span class="label">ROI</span> {{ "%.2f"|format(run.metrics.roi_pct) }}%</li>
+    <li><span class="label">Max DD</span> {{ "%.2f"|format(run.metrics.max_drawdown_pct) }}%</li>
+    <li><span class="label">Win rate</span> {{ "%.1f"|format(run.metrics.win_rate) }}%</li>
+    <li><span class="label">Profit factor</span> {{ "%.2f"|format(run.metrics.profit_factor) }}</li>
+    <li><span class="label">Trades</span> {{ run.metrics.trade_count }}</li>
+  </ul>
+  {% endif %}
+</div>

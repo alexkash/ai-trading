@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+.uv/
+data/*.sqlite
+data/*.sqlite-journal
+data/exports/
+.pytest_cache/
+.ruff_cache/
+*.parquet
+.env

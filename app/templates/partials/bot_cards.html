@@ -1,0 +1,29 @@
+{% if not bots %}
+<p class="muted">No bots yet — create one to get started.</p>
+{% else %}
+<div class="cards">
+  {% for bot in bots %}
+  <a class="card" href="/bots/{{ bot.id }}">
+    <div class="card-head">
+      <span class="status status-{{ bot.status.value if bot.status.value is defined else bot.status }}">
+        {{ bot.status.value if bot.status.value is defined else bot.status }}
+      </span>
+      <h3>{{ bot.name }}</h3>
+    </div>
+    <div class="card-meta muted">{{ bot.strategy }} · {{ bot.symbol }} · {{ bot.primary_tf }}</div>
+    <div class="card-stats">
+      <div><span class="label">Equity</span> ${{ "%.2f"|format(bot.equity) }}</div>
+      <div><span class="label">Realized PnL</span>
+        <span class="{% if bot.realized_pnl >= 0 %}pos{% else %}neg{% endif %}">
+          ${{ "%.2f"|format(bot.realized_pnl) }}
+        </span>
+      </div>
+      <div><span class="label">Max DD</span> {{ "%.2f"|format(bot.max_drawdown_pct) }}%</div>
+    </div>
+    {% if bot.last_error %}
+    <div class="error-chip" title="{{ bot.last_error }}">error</div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

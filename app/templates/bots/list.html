@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Bots — AI Trading{% endblock %}
+{% block content %}
+<section class="page">
+  <div class="row between">
+    <h1>Bots</h1>
+    <a class="btn primary" href="/bots/new">+ New bot</a>
+  </div>
+
+  {% if not strategies %}
+  <div class="empty">
+    <p>No strategies discovered. Drop a Python file in <code>bots/</code> with a class
+    inheriting from <code>BaseBot</code>, or run <code>uv run python -m app new-bot MyStrategy</code>.</p>
+  </div>
+  {% endif %}
+
+  <div id="bot-cards" hx-get="/bots/cards" hx-trigger="every 3s" hx-swap="innerHTML">
+    {% include "partials/bot_cards.html" %}
+  </div>
+</section>
+{% endblock %}

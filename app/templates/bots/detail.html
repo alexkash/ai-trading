@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% from "partials/form.html" import render_form %}
+{% block title %}{{ bot.name }} — Bot{% endblock %}
+{% block content %}
+<section class="page">
+  <header class="row between">
+    <div>
+      <h1>{{ bot.name }}</h1>
+      <p class="muted">
+        {{ bot.strategy }} · {{ bot.symbol }} · {{ bot.primary_tf }} ·
+        status:
+        <span class="status status-{{ bot.status.value if bot.status.value is defined else bot.status }}">
+          {{ bot.status.value if bot.status.value is defined else bot.status }}
+        </span>
+      </p>
+      {% if bot.last_error %}<p class="error">⚠ {{ bot.last_error }}</p>{% endif %}
+    </div>
+    <div class="actions">
+      {% if is_live %}
+      <form method="post" action="/bots/{{ bot.id }}/stop"><button class="btn">Stop live</button></form>
+      {% else %}
+      <form method="post" action="/bots/{{ bot.id }}/start"><button class="btn primary">Start live</button></form>
+      {% endif %}
+      <form method="post" action="/bots/{{ bot.id }}/delete"
+            onsubmit="return confirm('Delete this bot?');">
+        <button class="btn danger">Delete</button>
+      </form>
+    </div>
+  </header>
+
+  <div class="grid two-col">
+    <div>
+      <h2>Settings</h2>
+      <form method="post" action="/bots/{{ bot.id }}/params" class="bot-form">
+        <fieldset>
+          <legend>Identity</legend>
+          <label class="field"><span>Name</span><input name="name" value="{{ bot.name }}" /></label>
+          <label class="field"><span>Symbol</span><input name="symbol" value="{{ bot.symbol }}" /></label>
+          <label class="field">
+            <span>Timeframe</span>
+            <select name="primary_tf">
+              {% for tf in (strategy.supported_timeframes if strategy else ["1m","5m","15m","1h","4h","1d"]) %}
+              <option value="{{ tf }}" {% if tf == bot.primary_tf %}selected{% endif %}>{{ tf }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </fieldset>
+
+        {% if strategy %}
+        <fieldset>
+          <legend>Strategy parameters</legend>
+          {{ render_form(bot_form, "p") }}
+        </fieldset>
+        {% endif %}
+
+        <fieldset>
+          <legend>Instance config</legend>
+          {{ render_form(cfg_form, "c") }}
+        </fieldset>
+
+        <button class="btn primary" type="submit">Save</button>
+      </form>
+    </div>
+
+    <div>
+      <h2>Equity (live)</h2>
+      <div id="equity-chart" class="chart"></div>
+      <script>
+        (function() {
+          const el = document.getElementById('equity-chart');
+          const chart = LightweightCharts.createChart(el, {
+            height: 280, layout: { background: { color: '#0f1115' }, textColor: '#bbb' },
+            grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
+            timeScale: { timeVisible: true },
+          });
+          const series = chart.addLineSeries({ color: '#4caf50' });
+          async function refresh() {
+            const r = await fetch('/bots/{{ bot.id }}/equity.json');
+            const data = await r.json();
+            if (data.length) series.setData(data);
+          }
+          refresh();
+          setInterval(refresh, 3000);
+        })();
+      </script>
+
+      <h2>Backtest</h2>
+      <form method="post" action="/bots/{{ bot.id }}/backtest" class="row gap">
+        <label class="field"><span>From</span><input type="date" name="from_date" value="{{ default_from }}" required /></label>
+        <label class="field"><span>To</span><input type="date" name="to_date" value="{{ default_to }}" required /></label>
+        <button class="btn">Run backtest</button>
+      </form>
+
+      <h3>Recent runs</h3>
+      <table class="table">
+        <thead><tr><th>#</th><th>Status</th><th>Range</th><th>PnL</th></tr></thead>
+        <tbody>
+          {% for r in runs %}
+          <tr>
+            <td><a href="/runs/{{ r.id }}">{{ r.id }}</a></td>
+            <td>{{ r.status.value if r.status.value is defined else r.status }}</td>
+            <td>{{ r.from_ts.date() }} → {{ r.to_ts.date() }}</td>
+            <td>${{ "%.2f"|format(r.metrics.get('net_pnl', 0)) if r.metrics else "—" }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="4" class="muted">No runs yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h3>Exports</h3>
+      <ul class="exports">
+        {% for kind in ['trades','equity','signals','snapshots','candles'] %}
+        <li>
+          {{ kind }}:
+          <a href="/exports/bot/{{ bot.id }}/{{ kind }}.csv">csv</a> ·
+          <a href="/exports/bot/{{ bot.id }}/{{ kind }}.parquet">parquet</a>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <h2>Recent trades (live)</h2>
+  <table class="table">
+    <thead><tr>
+      <th>Opened</th><th>Closed</th><th>Side</th><th>Entry</th><th>Exit</th>
+      <th>PnL</th><th>Reason</th>
+    </tr></thead>
+    <tbody>
+      {% for t in trades %}
+      <tr>
+        <td>{{ t.opened_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ t.closed_at.strftime('%Y-%m-%d %H:%M') if t.closed_at else "—" }}</td>
+        <td>{{ t.side }}</td>
+        <td>{{ "%.4f"|format(t.entry_price) }}</td>
+        <td>{{ "%.4f"|format(t.exit_price) if t.exit_price else "—" }}</td>
+        <td class="{% if t.pnl >= 0 %}pos{% else %}neg{% endif %}">${{ "%.2f"|format(t.pnl) }}</td>
+        <td class="muted">{{ t.exit_reason or "" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No trades yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Recent signals</h2>
+  <table class="table">
+    <thead><tr><th>Time</th><th>Actions</th><th>Reasoning</th><th>Error</th></tr></thead>
+    <tbody>
+      {% for s in signals %}
+      <tr>
+        <td>{{ s.ts.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td><code>{{ s.actions|tojson }}</code></td>
+        <td>{{ s.reasoning }}</td>
+        <td class="error">{{ s.error or "" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4" class="muted">No signals yet</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

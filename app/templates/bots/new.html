@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% from "partials/form.html" import render_form %}
+{% block title %}New bot{% endblock %}
+{% block content %}
+<section class="page">
+  <h1>New bot</h1>
+
+  <form class="strategy-picker" method="get" action="/bots/new">
+    <label>
+      <span>Strategy</span>
+      <select name="strategy" onchange="this.form.submit()">
+        {% for s in strategies %}
+        <option value="{{ s.key }}" {% if s.key == selected.key %}selected{% endif %}>
+          {{ s.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+    {% if selected.description %}<p class="muted">{{ selected.description }}</p>{% endif %}
+  </form>
+
+  <form method="post" action="/bots" class="bot-form">
+    <input type="hidden" name="strategy" value="{{ selected.key }}" />
+
+    <fieldset>
+      <legend>Identity</legend>
+      <label class="field">
+        <span>Name</span>
+        <input name="name" required placeholder="My EMA bot" />
+      </label>
+      <label class="field">
+        <span>Symbol</span>
+        <input name="symbol" required value="{{ default_symbol }}" />
+      </label>
+      <label class="field">
+        <span>Timeframe</span>
+        <select name="primary_tf">
+          {% for tf in selected.supported_timeframes %}
+          <option value="{{ tf }}" {% if tf == default_tf %}selected{% endif %}>{{ tf }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </fieldset>
+
+    <fieldset>
+      <legend>Strategy parameters</legend>
+      {{ render_form(bot_form, "p") }}
+    </fieldset>
+
+    <fieldset>
+      <legend>Instance config (risk, capital, simulator)</legend>
+      {{ render_form(cfg_form, "c") }}
+    </fieldset>
+
+    <button class="btn primary" type="submit">Create</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% macro render_form(fields, prefix) %}
+<div class="form-grid">
+  {% for f in fields %}
+    {% if f.kind == 'nested' %}
+      <fieldset class="nested">
+        <legend>{{ f.label }}</legend>
+        {% if f.description %}<p class="muted small">{{ f.description }}</p>{% endif %}
+        {{ render_form(f.nested, prefix ~ '.' ~ f.name) }}
+      </fieldset>
+    {% else %}
+    <label class="field">
+      <span class="label-row">
+        <span>{{ f.label }}</span>
+        {% if f.description %}<span class="muted small">{{ f.description }}</span>{% endif %}
+      </span>
+      {% if f.kind == 'select' %}
+        <select name="{{ prefix }}.{{ f.name }}">
+          {% for v, lbl in f.options %}
+          <option value="{{ v }}" {% if f.value == v %}selected{% endif %}>{{ lbl }}</option>
+          {% endfor %}
+        </select>
+      {% elif f.kind == 'checkbox' %}
+        <input type="hidden" name="{{ prefix }}.{{ f.name }}" value="false" />
+        <input type="checkbox" name="{{ prefix }}.{{ f.name }}" value="true"
+               {% if f.value %}checked{% endif %} />
+      {% elif f.kind == 'number' %}
+        <input type="number" step="{{ f.step }}"
+               {% if f.min is not none %}min="{{ f.min }}"{% endif %}
+               {% if f.max is not none %}max="{{ f.max }}"{% endif %}
+               name="{{ prefix }}.{{ f.name }}" value="{{ f.value }}" />
+      {% else %}
+        <input type="text" name="{{ prefix }}.{{ f.name }}" value="{{ f.value }}" />
+      {% endif %}
+    </label>
+    {% endif %}
+  {% endfor %}
+</div>
+{% endmacro %}

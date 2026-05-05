@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Run #{{ run.id }}{% endblock %}
+{% block content %}
+<section class="page">
+  <header>
+    <h1>Run #{{ run.id }}</h1>
+    {% if bot %}
+    <p class="muted">
+      <a href="/bots/{{ bot.id }}">{{ bot.name }}</a> · {{ bot.symbol }} · {{ bot.primary_tf }}
+    </p>
+    {% endif %}
+    <p class="muted">{{ run.from_ts.strftime('%Y-%m-%d') }} → {{ run.to_ts.strftime('%Y-%m-%d') }}</p>
+  </header>
+
+  <div id="run-progress" hx-get="/runs/{{ run.id }}/progress" hx-trigger="every 1s"
+       {% if run.status.value in ('done', 'failed', 'cancelled') %}hx-trigger="load"{% endif %}>
+    {% include "partials/run_progress.html" %}
+  </div>
+
+  <h2>Equity</h2>
+  <div id="equity-chart" class="chart"></div>
+  <script>
+    (function() {
+      const el = document.getElementById('equity-chart');
+      const chart = LightweightCharts.createChart(el, {
+        height: 320, layout: { background: { color: '#0f1115' }, textColor: '#bbb' },
+        grid: { vertLines: { color: '#222' }, horzLines: { color: '#222' } },
+        timeScale: { timeVisible: true },
+      });
+      const series = chart.addLineSeries({ color: '#4caf50' });
+      async function refresh() {
+        const r = await fetch('/runs/{{ run.id }}/equity.json');
+        const data = await r.json();
+        if (data.length) series.setData(data);
+      }
+      refresh();
+      setInterval(refresh, 2000);
+    })();
+  </script>
+
+  <h2>Exports</h2>
+  <ul class="exports">
+    {% for kind in ['trades','equity','signals','snapshots','candles'] %}
+    <li>
+      {{ kind }}:
+      <a href="/exports/run/{{ run.id }}/{{ kind }}.csv">csv</a> ·
+      <a href="/exports/run/{{ run.id }}/{{ kind }}.parquet">parquet</a>
+    </li>
+    {% endfor %}
+  </ul>
+
+  <h2>Trades</h2>
+  <table class="table">
+    <thead><tr><th>Opened</th><th>Closed</th><th>Side</th><th>Entry</th><th>Exit</th><th>PnL</th><th>Reason</th></tr></thead>
+    <tbody>
+      {% for t in trades %}
+      <tr>
+        <td>{{ t.opened_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td>{{ t.closed_at.strftime('%Y-%m-%d %H:%M') if t.closed_at else "—" }}</td>
+        <td>{{ t.side }}</td>
+        <td>{{ "%.4f"|format(t.entry_price) }}</td>
+        <td>{{ "%.4f"|format(t.exit_price) if t.exit_price else "—" }}</td>
+        <td class="{% if t.pnl >= 0 %}pos{% else %}neg{% endif %}">${{ "%.2f"|format(t.pnl) }}</td>
+        <td class="muted">{{ t.exit_reason }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="7" class="muted">No trades</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Recent signals</h2>
+  <table class="table">
+    <thead><tr><th>Time</th><th>Actions</th><th>Reasoning</th><th>Error</th></tr></thead>
+    <tbody>
+      {% for s in signals %}
+      <tr>
+        <td>{{ s.ts.strftime('%Y-%m-%d %H:%M') }}</td>
+        <td><code>{{ s.actions|tojson }}</code></td>
+        <td>{{ s.reasoning }}</td>
+        <td class="error">{{ s.error or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
