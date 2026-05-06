@@ -4,7 +4,24 @@
 
 ```bash
 uv sync
+cp .env.example .env   # optional — defaults work for paper trading
 ```
+
+## Bybit API keys
+
+**Not required for v1.** The platform only uses public Bybit endpoints
+(REST `kline` history and the public WebSocket linear stream). You can run
+backtests and live paper trading without any keys.
+
+If you want to add them anyway (higher REST rate limits, future private
+endpoints), put them in `.env`:
+
+```
+BYBIT_API_KEY=...
+BYBIT_API_SECRET=...
+```
+
+`.env` is gitignored. Never commit it.
 
 ## Run
 

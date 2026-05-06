@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     bybit_rest_url: str = "https://api.bybit.com"
     bybit_ws_public_url: str = "wss://stream.bybit.com/v5/public/linear"
 
+    # Bybit API credentials (optional in v1 — paper trading uses public market data only).
+    # Used for higher REST rate limits and, eventually, private endpoints.
+    bybit_api_key: str = ""
+    bybit_api_secret: str = ""
+
     default_taker_fee_bps: float = 5.5
     default_maker_fee_bps: float = 2.0
     default_slippage_bps: float = 1.0
